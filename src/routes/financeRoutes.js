@@ -1,0 +1,14 @@
+const r=require('express').Router(),{protect,authorize}=require('../middleware/auth'),c=require('../controllers/financeController');
+r.use(protect,authorize('admin','finance_officer'));
+r.get('/modules',c.requirePermission('overview'),c.getModules);
+r.get('/overview',c.requirePermission('overview'),c.getOverview);
+r.get('/alerts',c.requirePermission('alerts'),c.getAlerts);
+r.get('/invoices',c.requirePermission('invoices'),c.listInvoices);
+r.get('/analytics',c.requirePermission('analytics'),c.getAnalytics);
+r.get('/audit-trail',c.requirePermission('audit'),c.getAuditTrail);
+r.get('/expenses',c.requirePermission('expenses'),c.listExpenses);
+r.post('/expenses',c.requirePermission('expenses'),c.createExpense);
+r.patch('/expenses/:id',c.requirePermission('expenses'),c.updateExpense);
+r.delete('/expenses/:id',c.requirePermission('expenses'),c.deleteExpense);
+r.get('/report',c.requirePermission('reports'),c.getReport);
+module.exports=r;

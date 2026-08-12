@@ -1,0 +1,16 @@
+const express = require('express');
+const router = express.Router();
+const { protect, authorize } = require('../middleware/auth');
+const ctrl = require('../controllers/reportController');
+const comments = require('../controllers/reportCommentsController');
+router.get('/', protect, ctrl.listReports);
+router.get('/comments', protect, comments.getComments);
+router.post('/comments', protect, authorize('teacher','admin','super_admin'), comments.saveComments);
+router.put('/comments/:id', protect, authorize('teacher','admin','super_admin'), comments.saveComments);
+router.post('/comments/bulk-save', protect, authorize('teacher','admin','super_admin'), comments.bulkSaveComments);
+router.post('/comments/generate', protect, authorize('teacher','admin','super_admin'), comments.generateComments);
+router.post('/comments/headteacher', protect, authorize('admin','super_admin'), comments.saveHeadteacherComment);
+router.post('/:reportId/headteacher-comment', protect, authorize('admin','super_admin'), comments.saveHeadteacherComment);
+router.get('/:id', protect, ctrl.getReport);
+router.post('/generate', protect, authorize('admin','teacher','super_admin'), ctrl.generateReport);
+module.exports = router;

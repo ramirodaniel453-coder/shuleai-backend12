@@ -1,0 +1,10 @@
+const router = require('express').Router();
+const { protect, authorize } = require('../middleware/auth');
+const ctrl = require('../controllers/birthdayController');
+router.use(protect);
+router.get('/upcoming', authorize('admin','super_admin','teacher'), ctrl.upcoming);
+router.get('/settings', authorize('admin','super_admin'), ctrl.settings);
+router.put('/settings', authorize('admin','super_admin'), ctrl.updateSettings);
+router.patch('/students/:studentId/privacy', authorize('admin','super_admin'), ctrl.updateStudentPrivacy);
+router.post('/process', authorize('admin','super_admin'), ctrl.process);
+module.exports = router;

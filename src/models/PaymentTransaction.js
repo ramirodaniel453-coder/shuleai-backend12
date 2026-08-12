@@ -1,0 +1,38 @@
+module.exports = (sequelize, DataTypes) => {
+  const PaymentTransaction = sequelize.define('PaymentTransaction', {
+    legacyPaymentId: { type: DataTypes.INTEGER, allowNull: true },
+    invoiceId: { type: DataTypes.INTEGER, allowNull: true },
+    schoolId: { type: DataTypes.INTEGER, allowNull: true },
+    schoolCode: { type: DataTypes.STRING, allowNull: false , references: { model: 'Schools', key: 'schoolId' }, onUpdate: 'CASCADE', onDelete: 'RESTRICT'},
+    studentId: { type: DataTypes.INTEGER, allowNull: true },
+    parentId: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'Parents', key: 'id' }, onUpdate: 'CASCADE', onDelete: 'RESTRICT' },
+    paymentType: { type: DataTypes.STRING, allowNull: false, defaultValue: 'school_fee' },
+    destination: { type: DataTypes.STRING, allowNull: false, defaultValue: 'school' },
+    provider: { type: DataTypes.STRING, allowNull: false, defaultValue: 'manual' },
+    method: { type: DataTypes.STRING, allowNull: false, defaultValue: 'manual' },
+    internalReference: { type: DataTypes.STRING, allowNull: false },
+    providerReference: { type: DataTypes.STRING, allowNull: true },
+    idempotencyKey: { type: DataTypes.STRING, allowNull: true },
+    amount: { type: DataTypes.INTEGER, allowNull: false },
+    confirmedAmount: { type: DataTypes.INTEGER, allowNull: true },
+    currency: { type: DataTypes.STRING, allowNull: false, defaultValue: 'KES' },
+    status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'pending' },
+    promptType: { type: DataTypes.STRING, allowNull: true },
+    promptStatus: { type: DataTypes.STRING, allowNull: true },
+    checkoutUrl: { type: DataTypes.TEXT, allowNull: true },
+    phone: { type: DataTypes.STRING, allowNull: true },
+    accountReference: { type: DataTypes.STRING, allowNull: true },
+    failureReason: { type: DataTypes.TEXT, allowNull: true },
+    receiptNumber: { type: DataTypes.STRING, allowNull: true },
+    paidAt: { type: DataTypes.DATE, allowNull: true },
+    failedAt: { type: DataTypes.DATE, allowNull: true },
+    expiresAt: { type: DataTypes.DATE, allowNull: true },
+    reconciledAt: { type: DataTypes.DATE, allowNull: true },
+    metadata: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
+    providerPayload: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
+    auditTrail: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+    createdBy: { type: DataTypes.INTEGER, allowNull: true },
+    updatedBy: { type: DataTypes.INTEGER, allowNull: true }
+  }, { timestamps: true, indexes: [{ unique: true, fields: ['schoolCode', 'internalReference'] }, { fields: ['provider', 'providerReference'] }, { fields: ['schoolCode', 'studentId', 'status'] }] });
+  return PaymentTransaction;
+};

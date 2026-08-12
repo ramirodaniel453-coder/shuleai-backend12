@@ -1,0 +1,12 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/auth');
+const ctrl = require('../controllers/reportHistoryController');
+router.get('/shared/:token', ctrl.openShared);
+router.use(protect);
+router.get('/history', ctrl.list);
+router.get('/latest/:studentId/pdf', ctrl.downloadLatestPdf);
+router.get('/history/:id/pdf', ctrl.downloadPdf);
+router.get('/history/:id', ctrl.getOne);
+router.post('/history/:id/correct', ctrl.correct);
+router.post('/history/:id/share', ctrl.share);
+module.exports = router;
