@@ -1,0 +1,15 @@
+ShuleAI Backend v2016 Render Root Package
+
+This package is flattened for Render. package.json, server.js, and src/ are at the root.
+
+Render settings if you deploy this package/repo:
+- Root Directory: leave blank
+- Build Command: npm ci --omit=dev
+- Start Command: npm start
+
+If you deploy the full ShuleAI package that contains backend/ and frontend/ folders:
+- Root Directory: backend
+- Build Command: npm ci --omit=dev
+- Start Command: npm start
+
+This package includes src/routes/authRoutes.js. If Render says it cannot find ./routes/authRoutes, your deployed repo is missing src/routes/authRoutes.js or the root directory is wrong.
