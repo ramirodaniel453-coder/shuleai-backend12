@@ -1,0 +1,47 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: "en-US"
+reviews:
+  profile: "assertive"
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: true
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/*.min.js"
+    - "!**/*.map"
+  path_instructions:
+    - path: "**/*.js"
+      instructions: |
+        Treat this as production ShuleAI backend code. Prioritize correctness and regression prevention over cosmetic refactors.
+        Flag runtime errors, undefined imports/functions, swallowed exceptions, unsafe async behavior, missing awaits, race conditions, memory/resource leaks, and startup/shutdown defects.
+        Check authentication, authorization, role enforcement, school/tenant isolation, input validation, sensitive-data exposure, secret handling, CORS, rate limiting, and insecure defaults.
+        Check Sequelize/PostgreSQL queries, transactions, associations, nullability, uniqueness, foreign keys, and data-integrity risks.
+        Check API response/status contracts and compatibility with the linked shuleaione frontend. Do not recommend changing a working endpoint contract unless the corresponding frontend impact is identified.
+        For payments and callbacks, flag missing idempotency, replay protection, amount/provider mismatches, unsafe retries, and trust of client-supplied financial state.
+        For Socket.IO/realtime code, verify authentication, room authorization, school isolation, reconnect behavior, duplicate-event handling, and multi-instance safety.
+    - path: "src/routes/**"
+      instructions: |
+        Verify each route is mounted, uses the correct HTTP method/path, applies authentication and role middleware in the correct order, and maps to an existing controller/service function. Compare contracts against ROUTE_MANIFEST.json and the linked frontend API usage where relevant.
+    - path: "src/controllers/**"
+      instructions: |
+        Flag duplicated business rules, frontend-derived authority, tenant leaks, missing validation, incorrect status codes, inconsistent response shapes, partial writes without transactions, and controller logic that bypasses canonical services.
+    - path: "src/models/**"
+      instructions: |
+        Verify model definitions and associations preserve school/tenant isolation and match migration intent. Flag destructive association changes, incorrect foreign keys, unsafe defaults, missing constraints, and changes that can orphan or cross-link records.
+    - path: "src/migrations/**"
+      instructions: |
+        Treat migrations as production-critical. Flag destructive or non-idempotent changes, irreversible data loss, unsafe table/column rewrites, missing transaction safety where applicable, and schema changes inconsistent with Sequelize models.
+    - path: "tests/**"
+      instructions: |
+        Check that critical authentication, tenant isolation, API contracts, payments, migrations, and realtime behavior have regression coverage. Flag tests that can pass without exercising the intended production path.
+    - path: "ROUTE_MANIFEST.json"
+      instructions: |
+        Treat this as the backend contract manifest. Flag route removals, method/path drift, duplicates, or inconsistencies that can break the linked shuleaione frontend.
+knowledge_base:
+  linked_repositories:
+    - repository: "ramirodaniel453-coder/shuleaione"
+      instructions: "Canonical ShuleAI browser/PWA frontend. Use it to verify API paths, payload/response expectations, authentication/session behavior, realtime events, and frontend/backend contract compatibility."
