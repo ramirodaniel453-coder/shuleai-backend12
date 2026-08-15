@@ -1,0 +1,151 @@
+name: CodeRabbit Push Review
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coderabbit-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coderabbit-review:
+    name: CodeRabbit review
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CODERABBIT_API_KEY: ${{ secrets.CODERABBIT_API_KEY }}
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install CodeRabbit CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://cli.coderabbit.ai/install.sh | sh
+          echo "$HOME/.coderabbit/bin" >> "$GITHUB_PATH"
+          "$HOME/.coderabbit/bin/coderabbit" --version
+
+      - name: Validate CodeRabbit configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$HOME/.coderabbit/bin/coderabbit" config validate .coderabbit.yaml
+
+      - name: Check headless authentication secret
+        id: auth
+        shell: bash
+        run: |
+          if [ -n "${CODERABBIT_API_KEY:-}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## CodeRabbit review"
+              echo ""
+              echo "Repository configuration is valid, but the review was skipped because the GitHub secret \`CODERABBIT_API_KEY\` has not been added yet."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Select comparison base
+        if: steps.auth.outputs.enabled == 'true'
+        id: base
+        shell: bash
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          ZERO_SHA="0000000000000000000000000000000000000000"
+          BASE=""
+
+          if [ -n "${BEFORE_SHA:-}" ] && [ "$BEFORE_SHA" != "$ZERO_SHA" ] && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            BASE="$BEFORE_SHA"
+          elif git rev-parse --verify HEAD^ >/dev/null 2>&1; then
+            BASE="$(git rev-parse HEAD^)"
+          fi
+
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          if [ -z "$BASE" ]; then
+            echo "No previous commit is available to compare; review will be skipped for this initial commit." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run CodeRabbit on pushed changes
+        if: steps.auth.outputs.enabled == 'true' && steps.base.outputs.base != ''
+        id: review
+        shell: bash
+        env:
+          BASE_SHA: ${{ steps.base.outputs.base }}
+        run: |
+          set +e
+          "$HOME/.coderabbit/bin/coderabbit" review \
+            --agent \
+            --committed \
+            --base-commit "$BASE_SHA" \
+            --api-key "$CODERABBIT_API_KEY" \
+            | tee coderabbit-review.jsonl
+          REVIEW_EXIT=${PIPESTATUS[0]}
+          echo "exit_code=$REVIEW_EXIT" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Summarize CodeRabbit findings
+        if: always() && steps.auth.outputs.enabled == 'true' && steps.base.outputs.base != ''
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path("coderabbit-review.jsonl")
+          findings = []
+          errors = []
+          if path.exists():
+              for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                  raw = raw.strip()
+                  if not raw:
+                      continue
+                  try:
+                      event = json.loads(raw)
+                  except Exception:
+                      continue
+                  if event.get("type") == "finding":
+                      findings.append(event)
+                  elif event.get("type") == "error":
+                      errors.append(event)
+
+          counts = {k: 0 for k in ["critical", "major", "minor", "trivial", "info"]}
+          for item in findings:
+              severity = str(item.get("severity", "info")).lower()
+              counts[severity] = counts.get(severity, 0) + 1
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as out:
+                  out.write("\n## CodeRabbit push review\n\n")
+                  out.write(f"Findings: **{len(findings)}** — critical {counts.get('critical', 0)}, major {counts.get('major', 0)}, minor {counts.get('minor', 0)}, trivial {counts.get('trivial', 0)}, info {counts.get('info', 0)}.\n\n")
+                  if errors:
+                      out.write(f"CodeRabbit reported **{len(errors)}** review error event(s). Check the workflow log.\n\n")
+                  for item in findings[:50]:
+                      severity = str(item.get("severity", "info")).upper()
+                      filename = item.get("fileName") or "unknown file"
+                      text = item.get("comment") or item.get("codegenInstructions") or "Review finding"
+                      text = " ".join(str(text).split())[:500]
+                      out.write(f"- **{severity}** `{filename}` — {text}\n")
+                  if len(findings) > 50:
+                      out.write(f"\nOnly the first 50 of {len(findings)} findings are shown here; see the workflow log for the complete output.\n")
+          PY
+
+      - name: Keep review non-blocking
+        if: always()
+        shell: bash
+        run: |
+          echo "CodeRabbit is configured as an advisory check. It does not modify code, block pushes, or require a pull request."
