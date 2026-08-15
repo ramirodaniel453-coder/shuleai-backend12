@@ -32,14 +32,14 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsSL https://cli.coderabbit.ai/install.sh | sh
-          echo "$HOME/.coderabbit/bin" >> "$GITHUB_PATH"
-          "$HOME/.coderabbit/bin/coderabbit" --version
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/coderabbit" --version
 
       - name: Validate CodeRabbit configuration
         shell: bash
         run: |
           set -euo pipefail
-          "$HOME/.coderabbit/bin/coderabbit" config validate .coderabbit.yaml
+          "$HOME/.local/bin/coderabbit" config validate .coderabbit.yaml
 
       - name: Check headless authentication secret
         id: auth
@@ -86,7 +86,7 @@ jobs:
           BASE_SHA: ${{ steps.base.outputs.base }}
         run: |
           set +e
-          "$HOME/.coderabbit/bin/coderabbit" review \
+          "$HOME/.local/bin/coderabbit" review \
             --agent \
             --committed \
             --base-commit "$BASE_SHA" \
